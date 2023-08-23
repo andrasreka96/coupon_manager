@@ -1,0 +1,16 @@
+from fastapi import FastAPI
+import models
+from routes import router
+from config import engine
+
+models.Base.metadata.create_all(bind=engine)
+
+app = FastAPI()
+
+@app.get("/")
+async def root():
+    return {"message": "Coupon Manager Server is up"}
+
+app.include_router(router, prefix="/cup", tags=["coupon"])
+
+
