@@ -66,7 +66,7 @@ async def get_coupon(id: int, db: Session = Depends(get_db)) -> JSONResponse:
     return ValidityResponse(0)
 
 @router.post("/use")
-async def get_coupon(request: CouponUpdate, db: Session = Depends(get_db)):
+async def use_coupon(request: CouponUpdate, db: Session = Depends(get_db)):
     
     """Deactivates a coupon if it is possible
 
