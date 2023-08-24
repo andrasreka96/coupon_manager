@@ -9,12 +9,18 @@ class CouponCreate(BaseModel):
    validity_month: int
    
 class CouponUpdate(BaseModel):
-   id : int
+   code : str
+   
+class CouponOut(BaseModel):
+    coupon_code : str
+    coupon_type: str
+    partner_name : str
+    valid_until: str
        
 class CreateResponse(JSONResponse):
     
-    def __init__(self) -> None:
-        super().__init__(content={}, status_code = 204)
+    def __init__(self, message) -> None:
+        super().__init__(content={"coupon_code":message}, status_code = 201)
         
 class UpdateResponse(JSONResponse):
     
@@ -23,10 +29,10 @@ class UpdateResponse(JSONResponse):
     
 class ValidityResponse(JSONResponse):
     
-    def __init__(self, message: str, coupon: Coupon | None = None) -> None:
+    def __init__(self, message: str, coupon: CouponOut | None = None) -> None:
         super().__init__(
             content={
                 "validity":message,
-                "coupon_info" : {} if coupon is None else jsonable_encoder(coupon) 
+                "coupon_info" : {} if coupon is None else jsonable_encoder(coupon.model_dump()) 
             }, status_code=200)
         
