@@ -3,13 +3,11 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 from schemas import CouponCreate, CouponUpdate
 from models import Coupon, Partner
-import crud
-from datetime import date
-from dateutil.relativedelta import relativedelta
-from utils import valid_partner, valid_coupon, get_db
-from schemas import CreateResponse, UpdateResponse, ValidityResponse
+from utils import valid_partner, valid_coupon, get_db, calc_date, generate_code
+from schemas import CreateResponse, UpdateResponse, ValidityResponse, CouponOut
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
+import crud
 
 router = APIRouter()
 
@@ -33,21 +31,22 @@ async def create_coupon_service(request: CouponCreate, db: Session = Depends(get
         else:
             raise HTTPException(400, detail="Invalid partner")
 
-    crud.create_coupon(
+    coupon = crud.create_coupon(
         db=db, 
         coupon=Coupon(
+            id = generate_code(),
             type_id = coupon_type.id, 
             partner_id = partner.id, 
             used = False, 
-            valid_until = date.today() + relativedelta(months=request.validity_month)
+            valid_until = calc_date(request)
         )
     )      
           
-    return CreateResponse()
+    return CreateResponse(coupon.id)
 
 
 @router.get("/validity")
-async def get_coupon(id: int, db: Session = Depends(get_db)) -> JSONResponse:
+async def get_coupon(code: str, db: Session = Depends(get_db)) -> JSONResponse:
     
     """Checks the validity of a coupon
 
@@ -55,13 +54,18 @@ async def get_coupon(id: int, db: Session = Depends(get_db)) -> JSONResponse:
         JSONResponse: in case of valid coupon returns 1 with the corresponding information otherwise 0
     """
     
-    coupon = crud.retrieve_coupon(db, id)
+    coupon = crud.retrieve_coupon(db, code)
     
     if coupon is None:
         raise HTTPException(400, detail="Invalid coupon id")
     
     if valid_coupon(coupon):
-        return ValidityResponse(1, coupon)
+        return ValidityResponse(1, CouponOut(
+            coupon_code = coupon.id,
+            coupon_type = crud.retrieve_coupontype_by_id(db, coupon.type_id).name,
+            partner_name = crud.retrieve_partner_by_id(db, coupon.partner_id).name,
+            valid_until=coupon.valid_until.strftime("%x")      
+        ))
     
     return ValidityResponse(0)
 
@@ -74,7 +78,7 @@ async def use_coupon(request: CouponUpdate, db: Session = Depends(get_db)):
         UpdateResponse: if the coupon has been deactivated successfully returns with status code 201
     """
     
-    coupon = crud.retrieve_coupon(db, request.id)
+    coupon = crud.retrieve_coupon(db, request.code)
     
     if coupon is None:
         raise HTTPException(400, detail="Invalid coupon code")
