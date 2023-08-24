@@ -20,7 +20,7 @@ class Coupon(Base):
     
     __tablename__ ="coupon"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(64), primary_key=True, index=True)
     partner_id = Column(Integer, ForeignKey("partner.id"), comment = "coupon's partner id")
     type_id = Column(Integer, ForeignKey("coupon_type.id"), comment = "coupon's type id")
     valid_until = Column(Date)
